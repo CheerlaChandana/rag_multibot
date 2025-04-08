@@ -1,0 +1,17 @@
+streamlit
+langchain
+langchain-community
+langchain-groq
+faiss-cpu
+huggingface-hub
+transformers
+pypdf
+pandas
+nltk
+scikit-learn
+wordcloud
+matplotlib
+reportlab
+fpdf
+sentence-transformers
+easyocr
