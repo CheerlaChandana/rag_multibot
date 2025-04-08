@@ -33,7 +33,7 @@ class LocalSentenceTransformerEmbeddings(Embeddings):
 def load_and_process_documents(uploaded_files, groq_api_key, dirs):
     with st.spinner("Processing documents..."):
         all_chunks = []
-        tmp_dir = dirs["temp_dir"]  # Use D: drive temp directory locally
+        tmp_dir = dirs["temp_dir"]
 
         try:
             file_hashes = [hashlib.md5(file.getbuffer()).hexdigest() for file in uploaded_files]
@@ -44,6 +44,7 @@ def load_and_process_documents(uploaded_files, groq_api_key, dirs):
                 if file_hash not in st.session_state.processed_docs:
                     with open(filepath, "wb") as f:
                         f.write(file.getbuffer())
+                    
                     if file.name.endswith(".pdf"):
                         loader = PyPDFLoader(filepath)
                         docs = loader.load()
@@ -51,21 +52,31 @@ def load_and_process_documents(uploaded_files, groq_api_key, dirs):
                         loader = TextLoader(filepath) if file.name.endswith(".txt") else CSVLoader(filepath)
                         docs = loader.load()
                     elif file.name.endswith((".png", ".jpg", ".jpeg")):
-                        # Basic OCR for images
+                        # Enhanced OCR with pre-processing
                         image = Image.open(filepath)
-                        text = pytesseract.image_to_string(image)
-                        docs = [type('Document', (), {'page_content': text, 'metadata': {'source': file.name}})]  # Mock document
+                        # Convert to grayscale and apply noise reduction (optional)
+                        image = image.convert('L')  # Grayscale
+                        # Optional: Apply thresholding or noise reduction
+                        text = pytesseract.image_to_string(image, config='--psm 6')  # PSM 6 for better accuracy on single uniform blocks
+                        # Clean the extracted text
+                        cleaned_text = clean_text(text)
+                        docs = [type('Document', (), {'page_content': cleaned_text, 'metadata': {'source': file.name, 'type': 'image'}})]  # Mark as image
                     else:
                         continue
+
                     for doc in docs:
                         doc.page_content = clean_text(doc.page_content)
                         doc.metadata['source'] = file.name
+                        if file.name.endswith((".png", ".jpg", ".jpeg")):
+                            doc.metadata['type'] = 'image'  # Tag documents from images
+
                     splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=100)
                     chunks = splitter.split_documents(docs)
                     st.session_state.processed_docs[file_hash] = chunks
+
                 all_chunks.extend(st.session_state.processed_docs[file_hash])
 
-            # ✅ Replaced HuggingFaceEmbeddings with local version
+            # Use local embeddings
             embeddings = LocalSentenceTransformerEmbeddings("all-MiniLM-L6-v2")
 
             faiss_index_path = dirs["cache_dir"] / "faiss_index"
@@ -96,6 +107,7 @@ def load_and_process_documents(uploaded_files, groq_api_key, dirs):
             )
 
             return llm, qa_chain, hybrid_retriever, file_names
+
         finally:
             try:
                 shutil.rmtree(tmp_dir)
