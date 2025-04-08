@@ -105,6 +105,8 @@ def load_and_process_documents(uploaded_files, groq_api_key, dirs):
 def refine_question(base_question, llm, file_context=None):
     """Refine the question into a single, clear query for a cohesive answer."""
     context_str = f" based on the content of the following files: {file_context}" if file_context else ""
-    prompt = f"Refine this question into a single, clear, and concise query to be answered in one cohesive response, correcting any spelling mistakes or short forms and ensuring it relates to the documents{context_str}. If no relevant content exists in the documents, indicate that and provide a general answer if possible: {base_question}"
+    # Indicate that some documents might be images
+    document_types = " including text extracted from images and other documents" if any(fn.endswith((".png", ".jpg", ".jpeg")) for fn in (file_context or [])) else ""
+    prompt = f"Refine this question into a single, clear, and concise query to be answered in one cohesive response, correcting any spelling mistakes or short forms and ensuring it relates to the documents{context_str}{document_types}. If no relevant content exists in the documents, indicate that and provide a general answer if possible: {base_question}"
     refined_response = llm.invoke(prompt)
     return refined_response.content.strip()
