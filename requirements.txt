@@ -3,8 +3,6 @@ langchain
 langchain-community
 langchain-groq
 faiss-cpu
-huggingface-hub
-# transformers
 pypdf
 pandas
 nltk
@@ -13,12 +11,10 @@ wordcloud
 matplotlib
 reportlab
 fpdf
-# sentence-transformers
 easyocr
 toml
 pytesseract
 sentence-transformers==2.2.2
-# transformers==4.37.2
 transformers==4.30.2
 huggingface-hub==0.14.1
 rank_bm25
